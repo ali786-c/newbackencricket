@@ -7,12 +7,15 @@ use App\Domains\Identity\Services\PublicEntityCodeGenerator;
 use App\Domains\Sync\Services\IdempotencyService;
 use App\Models\Team;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class CreateTeamAction
 {
+    private const PUBLIC_CODE_SAVE_ATTEMPTS = 3;
+
     public function __construct(
         private readonly PublicEntityCodeGenerator $codeGenerator,
         private readonly IdempotencyService $idempotency,
@@ -20,6 +23,22 @@ class CreateTeamAction
 
     /** @param array<string, mixed> $attributes */
     public function handle(User $owner, array $attributes): Team
+    {
+        for ($attempt = 1; $attempt <= self::PUBLIC_CODE_SAVE_ATTEMPTS; $attempt++) {
+            try {
+                return $this->createWithinTransaction($owner, $attributes);
+            } catch (QueryException $exception) {
+                if (! $this->isPublicCodeCollision($exception) || $attempt === self::PUBLIC_CODE_SAVE_ATTEMPTS) {
+                    throw $exception;
+                }
+            }
+        }
+
+        throw new \LogicException('The team creation retry loop terminated unexpectedly.');
+    }
+
+    /** @param array<string, mixed> $attributes */
+    private function createWithinTransaction(User $owner, array $attributes): Team
     {
         return DB::transaction(function () use ($owner, $attributes): Team {
             $replay = $this->idempotency->findReplay(
@@ -65,7 +84,13 @@ class CreateTeamAction
             $this->recordIdempotency($owner, $attributes, $team);
 
             return $team;
-        });
+        }, attempts: 3);
+    }
+
+    private function isPublicCodeCollision(QueryException $exception): bool
+    {
+        return (int) ($exception->errorInfo[1] ?? 0) === 1062
+            && str_contains($exception->getMessage(), 'teams_team_code_unique');
     }
 
     /** @param array<string, mixed> $attributes */

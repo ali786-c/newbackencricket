@@ -7,12 +7,15 @@ use App\Domains\Identity\Services\PublicEntityCodeGenerator;
 use App\Domains\Sync\Services\IdempotencyService;
 use App\Models\Player;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class CreatePlayerAction
 {
+    private const PUBLIC_CODE_SAVE_ATTEMPTS = 3;
+
     public function __construct(
         private readonly PublicEntityCodeGenerator $codeGenerator,
         private readonly IdempotencyService $idempotency,
@@ -20,6 +23,22 @@ class CreatePlayerAction
 
     /** @param array<string, mixed> $attributes */
     public function handle(User $creator, array $attributes): Player
+    {
+        for ($attempt = 1; $attempt <= self::PUBLIC_CODE_SAVE_ATTEMPTS; $attempt++) {
+            try {
+                return $this->createWithinTransaction($creator, $attributes);
+            } catch (QueryException $exception) {
+                if (! $this->isPublicCodeCollision($exception) || $attempt === self::PUBLIC_CODE_SAVE_ATTEMPTS) {
+                    throw $exception;
+                }
+            }
+        }
+
+        throw new \LogicException('The player creation retry loop terminated unexpectedly.');
+    }
+
+    /** @param array<string, mixed> $attributes */
+    private function createWithinTransaction(User $creator, array $attributes): Player
     {
         return DB::transaction(function () use ($creator, $attributes): Player {
             $replay = $this->idempotency->findReplay(
@@ -68,7 +87,13 @@ class CreatePlayerAction
             $this->recordIdempotency($creator, $attributes, $player);
 
             return $player;
-        });
+        }, attempts: 3);
+    }
+
+    private function isPublicCodeCollision(QueryException $exception): bool
+    {
+        return (int) ($exception->errorInfo[1] ?? 0) === 1062
+            && str_contains($exception->getMessage(), 'players_player_code_unique');
     }
 
     /** @param array<string, mixed> $attributes */
