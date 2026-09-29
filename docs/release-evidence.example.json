@@ -1,0 +1,14 @@
+{
+  "release": "replace-with-release-version",
+  "gates": {
+    "zero_known_scoring_data_loss_defects": {"passed": false, "evidence": "", "verifiedAtUtc": ""},
+    "duplicate_sync_proven_harmless": {"passed": false, "evidence": "", "verifiedAtUtc": ""},
+    "android_restart_recovery": {"passed": false, "evidence": "", "verifiedAtUtc": ""},
+    "ios_restart_recovery": {"passed": false, "evidence": "", "verifiedAtUtc": ""},
+    "offline_full_match": {"passed": false, "evidence": "", "verifiedAtUtc": ""},
+    "conflict_recovery_preserves_events": {"passed": false, "evidence": "", "verifiedAtUtc": ""},
+    "security_policy_suite": {"passed": false, "evidence": "", "verifiedAtUtc": ""},
+    "backup_restore_drill": {"passed": false, "evidence": "", "verifiedAtUtc": ""},
+    "deployment_rollback_drill": {"passed": false, "evidence": "", "verifiedAtUtc": ""}
+  }
+}

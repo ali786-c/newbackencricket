@@ -11,7 +11,7 @@ abstract class ApiFormRequest extends FormRequest
 {
     protected function failedValidation(Validator $validator): never
     {
-        $requestId = $this->header('X-Request-ID');
+        $requestId = $this->attributes->get('request_id');
 
         throw new HttpResponseException(response()->json([
             'error' => [

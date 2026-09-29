@@ -1,3 +1,13 @@
+# STUMPS Laravel API
+
+Canonical Laravel API for the STUMPS local-first Flutter application.
+Production deployment, HTTPS, cPanel document root, bounded queue worker,
+scheduler, backup/restore and rollback instructions are defined in
+[`docs/CPANEL_PRODUCTION_RUNBOOK.md`](docs/CPANEL_PRODUCTION_RUNBOOK.md).
+
+Production must use `APP_TIMEZONE=UTC`, `APP_DEBUG=false`, a non-empty app key,
+and the `public/` directory as its only web document root.
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

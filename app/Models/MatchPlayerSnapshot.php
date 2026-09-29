@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-#[Fillable(['match_id', 'source_player_id', 'match_team_snapshot_id', 'name', 'playing_role', 'squad_role'])]
+#[Fillable(['match_id', 'source_player_id', 'match_team_snapshot_id', 'name', 'player_code', 'playing_role', 'squad_role'])]
 class MatchPlayerSnapshot extends Model
 {
     /** @use HasFactory<MatchPlayerSnapshotFactory> */

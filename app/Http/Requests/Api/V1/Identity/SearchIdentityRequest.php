@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\V1\Identity;
 
 use App\Http\Requests\Api\V1\ApiFormRequest;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Validation\Rule;
 
 class SearchIdentityRequest extends ApiFormRequest
 {
@@ -28,6 +29,7 @@ class SearchIdentityRequest extends ApiFormRequest
             'code' => ['nullable', 'string', "regex:/^STP-{$entityPrefix}-[0-9A-HJKMNP-TV-Z]{8}$/"],
             'query' => ['nullable', 'string', 'min:2', 'max:100'],
             'cursor' => ['nullable', 'string', 'max:500'],
+            'scope' => ['nullable', Rule::in(['mine'])],
         ];
     }
 

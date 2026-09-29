@@ -23,6 +23,17 @@ class TeamController extends Controller
     public function index(SearchIdentityRequest $request)
     {
         $query = Team::query()->whereNull('archived_at')->orderBy('normalized_name')->orderBy('id');
+        if ($request->validated('scope') === 'mine') {
+            $claimedPlayerId = $request->user()->claimedPlayer()->value('id');
+            $query->where(function ($ownedOrMember) use ($request, $claimedPlayerId): void {
+                $ownedOrMember->where('owner_user_id', $request->user()->id);
+                if ($claimedPlayerId !== null) {
+                    $ownedOrMember->orWhereHas('memberships', fn ($membership) => $membership
+                        ->where('player_id', $claimedPlayerId)
+                        ->whereNull('left_at'));
+                }
+            });
+        }
         if ($request->filled('code')) {
             $query->where('team_code', $request->validated('code'));
         }

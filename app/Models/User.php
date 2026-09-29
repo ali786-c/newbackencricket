@@ -14,7 +14,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'city', 'playing_role', 'batting_style', 'bowling_style', 'bio', 'photo_url'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -29,6 +29,16 @@ class User extends Authenticatable
     public function playerClaimRequests(): HasMany
     {
         return $this->hasMany(PlayerClaimRequest::class, 'claimant_user_id');
+    }
+
+    public function stumpsNotifications(): HasMany
+    {
+        return $this->hasMany(UserNotification::class);
+    }
+
+    public function mediaUploads(): HasMany
+    {
+        return $this->hasMany(MediaUpload::class);
     }
 
     /**

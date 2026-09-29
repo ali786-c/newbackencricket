@@ -4,6 +4,8 @@ namespace App\Http\Requests\Api\V1\Teams;
 
 use App\Http\Requests\Api\V1\ApiFormRequest;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class EndTeamMembershipRequest extends ApiFormRequest
 {
@@ -12,7 +14,13 @@ class EndTeamMembershipRequest extends ApiFormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->can('update', $this->route('team')) ?? false;
+        $user = $this->user();
+        $membership = $this->route('membership');
+
+        return $user !== null && (
+            $user->can('update', $this->route('team'))
+            || $membership?->player?->claimed_user_id === $user->id
+        );
     }
 
     /**
@@ -23,7 +31,19 @@ class EndTeamMembershipRequest extends ApiFormRequest
     public function rules(): array
     {
         return [
-            'leftAtUtc' => ['required', 'date_format:Y-m-d\TH:i:s\Z'],
+            'leftAtUtc' => ['sometimes', 'date_format:Y-m-d\TH:i:s\Z'],
+            'teamRole' => ['sometimes', 'nullable', Rule::in(['member', 'captain', 'vice_captain', 'wicketkeeper'])],
+            'baseVersion' => ['sometimes', 'integer', 'min:1'],
         ];
+    }
+
+    /** @return array<callable(Validator): void> */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            if (! $this->hasAny(['leftAtUtc', 'teamRole'])) {
+                $validator->errors()->add('request', 'A membership change is required.');
+            }
+        }];
     }
 }

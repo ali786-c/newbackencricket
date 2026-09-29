@@ -60,6 +60,20 @@ class TeamMembershipController extends Controller
     ): TeamMembershipResource {
         abort_unless($membership->team_id === $team->id, 404);
 
+        if ($request->has('teamRole')) {
+            abort_if(
+                $request->filled('baseVersion') && $membership->version !== $request->integer('baseVersion'),
+                409,
+                'Membership version conflict.',
+            );
+            $membership->forceFill([
+                'team_role' => $request->validated('teamRole'),
+                'version' => $membership->version + 1,
+            ])->save();
+
+            return new TeamMembershipResource($membership->refresh());
+        }
+
         return new TeamMembershipResource($end->handle(
             $membership,
             CarbonImmutable::parse($request->validated('leftAtUtc')),

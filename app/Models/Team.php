@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['team_code', 'owner_user_id', 'name', 'normalized_name', 'short_name', 'city', 'description', 'version', 'archived_at'])]
+#[Fillable(['team_code', 'owner_user_id', 'name', 'normalized_name', 'short_name', 'city', 'description', 'logo_path', 'version', 'archived_at'])]
 class Team extends Model
 {
     /** @use HasFactory<TeamFactory> */

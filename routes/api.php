@@ -1,30 +1,60 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DuplicateCandidateController;
 use App\Http\Controllers\Api\V1\EntityMergeRequestController;
+use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\IdentityResolutionController;
+use App\Http\Controllers\Api\V1\MatchController;
+use App\Http\Controllers\Api\V1\MatchEventController;
+use App\Http\Controllers\Api\V1\MatchProjectionController;
+use App\Http\Controllers\Api\V1\MatchScoringSessionController;
+use App\Http\Controllers\Api\V1\MediaUploadController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\PlayerClaimRequestController;
 use App\Http\Controllers\Api\V1\PlayerController;
+use App\Http\Controllers\Api\V1\SyncOutboxController;
 use App\Http\Controllers\Api\V1\TeamController;
 use App\Http\Controllers\Api\V1\TeamMembershipController;
 use App\Http\Controllers\Api\V1\TeamOwnershipTransferController;
-use Illuminate\Http\Request;
+use App\Http\Controllers\Api\V1\TournamentController;
+use App\Http\Controllers\Api\V1\TournamentHubController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/health', fn () => [
-    'status' => 'ok',
-    'service' => 'stumps-api',
-]);
-
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+Route::get('/health/live', [HealthController::class, 'live'])->name('api.v1.health.live');
+Route::get('/health/ready', [HealthController::class, 'ready'])->name('api.v1.health.ready');
+Route::prefix('auth')->group(function (): void {
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:auth-register');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth-login');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:auth-password');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth-password');
+});
 
 Route::get('/players/{player}', [PlayerController::class, 'show'])->name('api.v1.players.show');
 Route::get('/teams/{team}', [TeamController::class, 'show'])->name('api.v1.teams.show');
 Route::get('/identity/resolve/{publicCode}', IdentityResolutionController::class)->name('api.v1.identity.resolve');
 
-Route::middleware('auth:sanctum')->group(function (): void {
+Route::middleware(['auth:sanctum', 'throttle:api-authenticated'])->group(function (): void {
+    Route::post('/matches', [MatchController::class, 'store']);
+    Route::get('/matches/{match}', [MatchController::class, 'show']);
+    Route::post('/matches/{match}/scoring-sessions', [MatchScoringSessionController::class, 'store']);
+    Route::post('/matches/{match}/events/batch', [MatchEventController::class, 'batch']);
+    Route::get('/matches/{match}/events', [MatchEventController::class, 'index']);
+    Route::get('/matches/{match}/projection', [MatchProjectionController::class, 'show']);
+    Route::post('/matches/{match}/corrections', [MatchEventController::class, 'correct']);
+    Route::post('/matches/{match}/finish', [MatchController::class, 'finish']);
+    Route::get('/auth/me', [AuthController::class, 'me'])->name('api.v1.auth.me');
+    Route::post('/auth/logout', [AuthController::class, 'logout'])->name('api.v1.auth.logout');
+    Route::post('/auth/logout-all', [AuthController::class, 'logoutAll'])->name('api.v1.auth.logout-all');
+    Route::patch('/auth/profile', [AuthController::class, 'updateProfile'])->name('api.v1.auth.profile.update');
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'read']);
+    Route::get('/notification-preferences', [NotificationController::class, 'preferences']);
+    Route::put('/notification-preferences', [NotificationController::class, 'updatePreferences']);
+    Route::get('/media-uploads', [MediaUploadController::class, 'index']);
+    Route::post('/media-uploads', [MediaUploadController::class, 'store']);
+    Route::delete('/media-uploads/{mediaUpload}', [MediaUploadController::class, 'cancel']);
+    Route::post('/sync/outbox', SyncOutboxController::class)->name('api.v1.sync.outbox.store');
     Route::get('/identity/duplicate-candidates/{entityType}', DuplicateCandidateController::class)->name('api.v1.identity.duplicate-candidates');
     Route::post('/identity/merge-requests', [EntityMergeRequestController::class, 'store'])->name('api.v1.identity.merge-requests.store');
     Route::patch('/identity/merge-requests/{mergeRequest}', [EntityMergeRequestController::class, 'update'])->name('api.v1.identity.merge-requests.update');
@@ -42,4 +72,13 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::patch('/teams/{team}/ownership-transfers/{ownershipTransfer}', [TeamOwnershipTransferController::class, 'update'])->name('api.v1.team-ownership-transfers.update');
     Route::post('/teams/{team}/memberships', [TeamMembershipController::class, 'store'])->name('api.v1.team-memberships.store');
     Route::patch('/teams/{team}/memberships/{membership}', [TeamMembershipController::class, 'update'])->name('api.v1.team-memberships.update');
+    Route::get('/tournaments', [TournamentController::class, 'index'])->name('api.v1.tournaments.index');
+    Route::post('/tournaments', [TournamentController::class, 'store'])->name('api.v1.tournaments.store');
+    Route::get('/tournaments/{tournament}', [TournamentController::class, 'show'])->name('api.v1.tournaments.show');
+    Route::get('/tournaments/{tournament}/hub', [TournamentHubController::class, 'show']);
+    Route::post('/tournaments/{tournament}/teams', [TournamentHubController::class, 'registerTeam']);
+    Route::post('/tournaments/{tournament}/fixtures', [TournamentHubController::class, 'storeFixture']);
+    Route::post('/tournaments/{tournament}/fixtures/{fixture}/start', [TournamentHubController::class, 'startFixture']);
+    Route::post('/tournaments/{tournament}/fixtures/{fixture}/confirm-result', [TournamentHubController::class, 'confirmResult']);
+    Route::get('/tournaments/{tournament}/statistics', [TournamentHubController::class, 'statistics']);
 });

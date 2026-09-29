@@ -64,6 +64,23 @@ class TeamMembershipTest extends TestCase
         $this->assertDatabaseHas('team_memberships', ['id' => $membership->id, 'status' => 'past', 'version' => 2]);
     }
 
+    public function test_owner_can_change_membership_role_with_version_check(): void
+    {
+        $owner = User::factory()->create();
+        $team = Team::factory()->for($owner, 'owner')->create();
+        $membership = TeamMembership::factory()->for($team)->create(['team_role' => 'member', 'version' => 1]);
+        Sanctum::actingAs($owner);
+        $url = "/api/v1/teams/{$team->id}/memberships/{$membership->id}";
+
+        $this->patchJson($url, ['teamRole' => 'captain', 'baseVersion' => 1])
+            ->assertOk()
+            ->assertJsonPath('teamRole', 'captain')
+            ->assertJsonPath('version', 2);
+
+        $this->patchJson($url, ['teamRole' => 'member', 'baseVersion' => 1])
+            ->assertConflict();
+    }
+
     public function test_membership_from_another_team_returns_404(): void
     {
         $owner = User::factory()->create();
@@ -74,5 +91,19 @@ class TeamMembershipTest extends TestCase
         $this->patchJson("/api/v1/teams/{$team->id}/memberships/{$otherMembership->id}", [
             'leftAtUtc' => '2026-09-24T12:00:00Z',
         ])->assertNotFound();
+    }
+
+    public function test_claimed_player_can_end_their_own_membership(): void
+    {
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $player = Player::factory()->create(['claimed_user_id' => $member->id, 'claim_status' => 'claimed']);
+        $team = Team::factory()->for($owner, 'owner')->create();
+        $membership = TeamMembership::factory()->for($team)->for($player)->create(['joined_at' => '2026-01-01 00:00:00']);
+        Sanctum::actingAs($member);
+
+        $this->patchJson("/api/v1/teams/{$team->id}/memberships/{$membership->id}", [
+            'leftAtUtc' => '2026-09-24T12:00:00Z',
+        ])->assertOk()->assertJsonPath('status', 'past');
     }
 }
