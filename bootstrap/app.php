@@ -2,6 +2,8 @@
 
 use App\Domains\Matches\Exceptions\MatchIngestionConflict;
 use App\Http\Middleware\AssignRequestId;
+use App\Http\Middleware\EnforceApiControlState;
+use App\Http\Middleware\RequireAdmin;
 use App\Http\Middleware\LogApiRequest;
 use App\Http\Middleware\MonitorSyncHealth;
 use App\Http\Middleware\RequireProductionHttps;
@@ -24,7 +26,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
-        $middleware->api(prepend: [AssignRequestId::class, RequireProductionHttps::class, LogApiRequest::class, MonitorSyncHealth::class]);
+        $middleware->redirectGuestsTo(fn () => route('admin.login'));
+        $middleware->alias(['admin' => RequireAdmin::class]);
+        $middleware->api(prepend: [AssignRequestId::class, RequireProductionHttps::class, EnforceApiControlState::class, LogApiRequest::class, MonitorSyncHealth::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

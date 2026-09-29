@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Support\ApiControlState;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -22,7 +23,7 @@ class HealthController extends Controller
             return response()->json([
                 'status' => 'ready',
                 'dependencies' => ['database' => 'ok'],
-                'rolloutStage' => config('stumps.rollout_stage'),
+                'rolloutStage' => ApiControlState::current()['rollout_stage'],
             ]);
         } catch (Throwable) {
             return response()->json(['status' => 'unavailable', 'dependencies' => ['database' => 'unavailable']], 503);
