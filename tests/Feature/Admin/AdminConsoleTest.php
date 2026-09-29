@@ -46,4 +46,30 @@ class AdminConsoleTest extends TestCase
         $this->assertTrue($user->refresh()->is_admin);
         $this->artisan('stumps:admin', ['email' => 'missing@example.com'])->assertFailed();
     }
+
+    public function test_admin_create_command_uses_hidden_confirmed_password(): void
+    {
+        $this->artisan('stumps:admin-create', ['email' => 'ADMIN@example.com', '--name' => 'System Admin'])
+            ->expectsQuestion('Password (minimum 12 characters)', 'strong-password-2026')
+            ->expectsQuestion('Confirm password', 'strong-password-2026')
+            ->expectsOutputToContain('created successfully')
+            ->assertSuccessful();
+
+        $admin = User::where('email', 'admin@example.com')->firstOrFail();
+        $this->assertTrue($admin->is_admin);
+        $this->assertNotNull($admin->email_verified_at);
+        $this->assertTrue(password_verify('strong-password-2026', $admin->password));
+    }
+
+    public function test_admin_create_rejects_duplicate_email_and_weak_password(): void
+    {
+        User::factory()->create(['email' => 'admin@example.com']);
+
+        $this->artisan('stumps:admin-create', ['email' => 'admin@example.com', '--name' => 'Admin'])
+            ->expectsQuestion('Password (minimum 12 characters)', 'short')
+            ->expectsQuestion('Confirm password', 'different')
+            ->assertFailed();
+
+        $this->assertDatabaseCount('users', 1);
+    }
 }
