@@ -15,17 +15,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
-
-        User::factory()->create([
-            'name' => 'Admin User',
-            'email' => 'admin@stumps.com',
-            'is_admin' => true,
-        ]);
+        // Avoid using factory in production seeders because faker is a dev-dependency
+        User::updateOrCreate(
+            ['email' => 'admin@stumps.com'],
+            [
+                'name' => 'Admin User',
+                'password' => \Illuminate\Support\Facades\Hash::make('password'),
+                'is_admin' => true,
+            ]
+        );
     }
 }
