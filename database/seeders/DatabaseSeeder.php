@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'admin@stumps.com'],
             [
                 'name' => 'Admin User',
-                'password' => \Illuminate\Support\Facades\Hash::make('password'),
+                'password' => 'password',
                 'is_admin' => true,
             ]
         );
